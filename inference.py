@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from PIL import Image
 from io import BytesIO
 from torch.types import Number
-from torchvision import models, transforms
-import torch.nn as nn
+from torchvision import transforms
+# import torch.nn as nn
 
 
 class InferenceEngine:
@@ -16,15 +16,15 @@ class InferenceEngine:
             k: v.to(self.device) for k, v in checkpoint["embeddings"].items()
         }
 
-        self.model = self._load_model()
+        # self.model = self._load_model()
         self.transform = self._build_transform()
 
-    def _load_model(self):
-        model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT)
-        model.classifier = nn.Identity()  # type: ignore
-        model.eval()
-        model.to(self.device)
-        return model
+    # def _load_model(self):
+    #     model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT)
+    #     model.classifier = nn.Identity()  # type: ignore
+    #     model.eval()
+    #     model.to(self.device)
+    #     return model
 
     def _build_transform(self):
         return transforms.Compose(

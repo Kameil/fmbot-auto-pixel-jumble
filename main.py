@@ -1,6 +1,7 @@
 import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
+import logging
 
 import aiohttp
 import discord
@@ -11,6 +12,13 @@ from args import load_args
 from inference import InferenceEngine
 
 load_dotenv()
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 class MyBot(commands.Bot):
@@ -35,7 +43,7 @@ class MyBot(commands.Bot):
         self.session = aiohttp.ClientSession()
 
     async def on_ready(self):
-        print(f"bot logged in as {self.user.name}")  # type: ignore
+        logging.info(f"bot logged in as {self.user.name}")  # type: ignore
         self.loop.create_task(self.process_queue())
 
     async def fetch_img(self, url: str) -> bytes:
@@ -50,60 +58,67 @@ class MyBot(commands.Bot):
             message = await self.queue.get()
             message: discord.Message
 
-            def process_img(img_b: bytes):
-                query_emb = self.inference_eng.encode(img_b)
-                result, score = self.inference_eng.search(query_emb)
-                return result, score
+            async with message.channel.typing():
 
-            attachment = message.attachments[0]
-            img_b = await self.fetch_img(attachment.url)  # type: ignore
-            result, score = await self.loop.run_in_executor(
-                self.executor, process_img, img_b
-            )
-            if result and score > 0.5:
-                await message.channel.send(f"{score}% - {result}")
+                def process_img(img_b: bytes):
+                    query_emb = self.inference_eng.encode(img_b)
+                    result, score = self.inference_eng.search(query_emb)
+                    return result, score
+
+                attachment = message.attachments[0]
+                img_b = await self.fetch_img(attachment.url)  # type: ignore
+                result, score = await self.loop.run_in_executor(
+                    self.executor, process_img, img_b
+                )
+
+                def label_parsing(label: str) -> tuple[str, str]:
+                    """
+                    receives "album_name::album_image_link"
+                    returns (album_name, album_image_url)
+                    """
+                    vars = label.rsplit("::")
+                    return vars[0], vars[1]
+
+                if result and score > 0.9:  # maior do que 90% de similaridade
+                    album_name, album_image_link = label_parsing(result)
+                    logging.info(
+                        f"{attachment.url} got {score:.2f}% {album_name}::{album_image_link}"
+                    )
+                    await message.channel.send(album_name.lower())
+
+    async def process_fmbot_message(self, message: discord.Message):
+        if not message.attachments:
+            return
+        attachments = message.attachments
+        embeds = message.embeds
+        if attachments and embeds:
+            embed = embeds[0]
+            if (
+                embed.fields
+                and embed.fields[0].name
+                and "Pixel Jumble" in embed.fields[0].name
+            ):
+                await self.queue.put(message)
 
     async def on_message(self, message: discord.Message, /) -> None:
         if message.author.bot:
             if (
                 message.author.id == 356268235697553409
-                and message.guild.id == self.target_guild_id
+                and message.guild.id == self.target_guild_id  # type: ignore
             ):
-                if not message.attachments:
-                    return
-                attachments = message.attachments
-                embeds = message.embeds
-                if attachments and embeds:
-                    embed = embeds[0]
-                    if (
-                        embed.fields
-                        and embed.fields[0].name
-                        and "Pixel Jumble" in embed.fields[0].name
-                    ):
-                        await self.queue.put(message)
-        else:
-            await self.process_commands(message)
+                await self.process_fmbot_message(message)
+            else:
+                await self.process_commands(message)
 
     async def on_message_edit(
-        self, before, message: discord.Message
+        self, before: discord.Message, message: discord.Message
     ):  # message como after
         if message.author.bot:
             if (
                 message.author.id == 356268235697553409
-                and message.guild.id == self.target_guild_id
+                and message.guild.id == self.target_guild_id  # type: ignore
             ):
-                if not message.attachments:
-                    return
-                attachments = message.attachments
-                embeds = message.embeds
-                if attachments and embeds:
-                    embed = embeds[0]
-                    if (
-                        embed.fields
-                        and embed.fields[0].name
-                        and "Pixel Jumble" in embed.fields[0].name
-                    ):
-                        await self.queue.put(message)
+                await self.process_fmbot_message(message)
 
     async def close(self):
         if self.session is not None:
