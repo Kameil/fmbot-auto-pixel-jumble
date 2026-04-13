@@ -1,6 +1,6 @@
 # [fmbot](https://github.com/fmbot-discord/fmbot) auto pixel jumble
 
-- A bot that automatically solves pixel jumble game from FMbot.
+- A selfbot that automatically solves pixel jumble game from FMbot.
 
 ## how to use
 
@@ -11,11 +11,23 @@
 uv sync --frozen
 ```
 
+- create .env
+
+```
+mv .env.example .env 
+```
+
+```
+nvim .env 
+```
+
 - train model
 
 ```
-uv run train.py --u <username>
+uv run train.py -u <username>
 ```
+
+- After the model is trained, you can clear the training cache with `rm -r ./cache`.
 
 - run bot
 
