@@ -4,6 +4,7 @@ import os
 from io import BytesIO
 
 import aiohttp
+from numpy import trace
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # o coisa aí
@@ -37,7 +38,7 @@ class Trainer:
         self.transform = transforms.Compose(
             [
                 transforms.Lambda(pixelate_8x8),
-                transforms.Resize((224, 224)),
+                transforms.Resize((8, 8)),
                 transforms.ToTensor(),
                 transforms.Normalize(
                     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
@@ -68,20 +69,30 @@ class Trainer:
                     return f.read()
 
             # nao existe → baixa
-            async with session.get(url) as resp:
-                if resp.status != 200:
-                    return None
-                data = await resp.read()
-
-            if "coverartarchive.org" in url:
+            timeout = aiohttp.ClientTimeout(total=60)
+            try:
+                async with session.get(url, timeout=timeout) as resp:
+                    if resp.status != 200:
+                        return None
+                    data = await resp.read()
+            except (asyncio.TimeoutError, aiohttp.ClientError):
+                return None
+            try:
                 img = Image.open(BytesIO(data)).convert("RGB")
-                img = img.resize(
-                    (224, 224),
-                    resample=Image.BILINEAR,  # type: ignore
-                )  # salvar no tamanho da mobilenet se não o cache fica gigante
+                is_music_brainz = "coverartarchive.org" in url
+                format = "JPEG"
+                if is_music_brainz:
+                    format = "PNG"
+                    img = img.resize(
+                        (224, 224),
+                        resample=Image.BILINEAR,  # type: ignore
+                    )  # salvar no tamanho da mobilenet se não o cache fica gigante
                 buffer = BytesIO()
-                img.save(buffer, format="PNG")
+                img.save(buffer, format=format)
                 data = buffer.getvalue()
+            except Exception:
+                traceback.print_exc()
+                return None
 
             # salva no cache
             with open(path, "wb") as f:
@@ -98,25 +109,33 @@ class Trainer:
 
     def get_embedding(self, img_bytes: bytes) -> torch.Tensor:
         img = Image.open(BytesIO(img_bytes)).convert("RGB")
-        batch = self.transform(img).unsqueeze(0).to(self.device)  # type: ignore
-        with torch.no_grad():
-            emb = self.model(batch)
-        emb = emb.squeeze()
+        tensor = self.transform(img).to(self.device)
+        # batch = self.transform(img).unsqueeze(0).to(self.device)  # type: ignore
+        # with torch.no_grad():
+        #     emb = self.model(batch)
+        # emb = emb.squeeze()
+        mean_color = tensor.mean(dim=(1, 2))  # [3]
+        flat = tensor.flatten()  # [3*H*W]
+        emb = torch.cat(
+            [flat * 0.5, mean_color * 2.0]
+        )  # levar a cor mais em consideração
         emb = F.normalize(emb, dim=0)
         return emb
 
     def get_embeddings_batch(self, imgs_bytes: list[bytes]) -> torch.Tensor:
-        imgs = [
+        tensors = [
             self.transform(Image.open(BytesIO(b)).convert("RGB")) for b in imgs_bytes
         ]
 
-        batch = torch.stack(imgs).to(self.device)  # type: ignore unknown é minha pomba
+        batch = torch.stack(tensors).to(self.device)  # [B, 3, H, W]
 
-        with torch.no_grad():
-            embs = self.model(batch)
+        mean_color = batch.mean(dim=(2, 3))  # [B, 3]
+        flat = batch.flatten(start_dim=1)  # [B, N]
 
-        embs = F.normalize(embs, dim=1)
-        return embs
+        emb = torch.cat([flat * 0.5, mean_color * 2.0], dim=1)
+        emb = F.normalize(emb, dim=1)
+
+        return emb
 
     async def build_album_embeddings(self, session, albums: list[Album]):
         results: dict[str, torch.Tensor] = {}

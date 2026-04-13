@@ -29,7 +29,7 @@ class InferenceEngine:
     def _build_transform(self):
         return transforms.Compose(
             [
-                transforms.Resize((224, 224)),
+                transforms.Resize((8, 8)),
                 transforms.ToTensor(),
                 transforms.Normalize(
                     mean=[0.485, 0.456, 0.406],
@@ -54,13 +54,14 @@ class InferenceEngine:
     def encode(self, img_bytes: bytes) -> torch.Tensor:
         img = Image.open(BytesIO(img_bytes)).convert("RGB")
 
-        tensor = self.transform(img).unsqueeze(0).to(self.device)  # type: ignore
+        tensor = self.transform(img).to(self.device)  # [3, H, W]
 
-        with torch.no_grad():
-            emb = self.model(tensor)
+        mean_color = tensor.mean(dim=(1, 2))  # [3]
+        flat = tensor.flatten()  # [N]
 
-        emb = emb.squeeze(0)
-        emb = F.normalize(emb, dim=0).to(self.device)
+        emb = torch.cat([flat * 0.5, mean_color * 2.0])
+        emb = F.normalize(emb, dim=0)
+
         return emb
 
     def similarity(self, a: torch.Tensor, b: torch.Tensor) -> float:

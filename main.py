@@ -60,7 +60,7 @@ class MyBot(commands.Bot):
             result, score = await self.loop.run_in_executor(
                 self.executor, process_img, img_b
             )
-            if result:
+            if result and score > 0.5:
                 await message.channel.send(f"{score}% - {result}")
 
     async def on_message(self, message: discord.Message, /) -> None:
