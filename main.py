@@ -57,15 +57,14 @@ class MyBot(commands.Bot):
 
             attachment = message.attachments[0]
             img_b = await self.fetch_img(attachment.url)  # type: ignore
-            result, _ = await self.loop.run_in_executor(
+            result, score = await self.loop.run_in_executor(
                 self.executor, process_img, img_b
             )
             if result:
-                await message.channel.send(result)
+                await message.channel.send(f"{score}% - {result}")
 
     async def on_message(self, message: discord.Message, /) -> None:
         if message.author.bot:
-            print(message.author.id, message.guild.id)
             if (
                 message.author.id == 356268235697553409
                 and message.guild.id == self.target_guild_id
@@ -89,7 +88,6 @@ class MyBot(commands.Bot):
         self, before, message: discord.Message
     ):  # message como after
         if message.author.bot:
-            print(message.author.id, message.guild.id)
             if (
                 message.author.id == 356268235697553409
                 and message.guild.id == self.target_guild_id

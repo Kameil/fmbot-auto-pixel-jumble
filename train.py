@@ -14,8 +14,17 @@ from dotenv import load_dotenv
 import traceback
 
 from lastfm import Album, UserFm
+from args import load_args
 
 load_dotenv()
+args = load_args()
+
+
+def pixelate_8x8(img: Image.Image) -> Image.Image:
+    small = img.resize((8, 8), resample=Image.BILINEAR)  # type: ignore
+    big = small.resize((256, 256), resample=Image.NEAREST)  # type: ignore
+
+    return big
 
 
 def url_to_filename(url: str) -> str:
@@ -27,6 +36,7 @@ class Trainer:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.transform = transforms.Compose(
             [
+                transforms.Lambda(pixelate_8x8),
                 transforms.Resize((224, 224)),
                 transforms.ToTensor(),
                 transforms.Normalize(
@@ -62,6 +72,16 @@ class Trainer:
                 if resp.status != 200:
                     return None
                 data = await resp.read()
+
+            if "coverartarchive.org" in url:
+                img = Image.open(BytesIO(data)).convert("RGB")
+                img = img.resize(
+                    (224, 224),
+                    resample=Image.BILINEAR,  # type: ignore
+                )  # salvar no tamanho da mobilenet se não o cache fica gigante
+                buffer = BytesIO()
+                img.save(buffer, format="PNG")
+                data = buffer.getvalue()
 
             # salva no cache
             with open(path, "wb") as f:
@@ -106,44 +126,50 @@ class Trainer:
         buffer_keys: list[str] = []
 
         async def fetch(album: Album):
-            if (
-                not album.extralarge
-                or not album.extralarge.startswith("http")
-                or album.extralarge == ""
-            ):
-                return None
+            results = []
 
-            img_bytes = await self.get_image_bytes(session, album.extralarge)
+            urls = []
 
-            if img_bytes is None:
-                return None
+            if album.extralarge and album.extralarge.startswith("http"):
+                urls.append(album.extralarge)
 
-            key = f"{album.name}::{album.extralarge}"
-            return key, img_bytes
+            if getattr(album, "mb_img", None):
+                urls.append(album.mb_img)
+
+            for url in urls:
+                img_bytes = await self.get_image_bytes(session, url)
+
+                if not img_bytes:
+                    continue
+
+                key = f"{album.name}::{url}"
+                results.append((key, img_bytes))
+
+            return results if results else None
 
         tasks = [fetch(album) for album in albums]
 
         for coro in tqdm(asyncio.as_completed(tasks), total=len(tasks)):
-            item = await coro
+            items = await coro
 
-            if item is None:
+            if not items:
                 continue
 
-            key, img_bytes = item
-            if not img_bytes:
-                continue
+            for key, img_bytes in items:
+                if not img_bytes:
+                    continue
 
-            buffer_imgs.append(img_bytes)
-            buffer_keys.append(key)
+                buffer_imgs.append(img_bytes)
+                buffer_keys.append(key)
 
-            if len(buffer_imgs) >= batch_size:
-                embs = self.get_embeddings_batch(buffer_imgs)
+                if len(buffer_imgs) >= batch_size:
+                    embs = self.get_embeddings_batch(buffer_imgs)
 
-                for k, e in zip(buffer_keys, embs):
-                    results[k] = e.cpu()
+                    for k, e in zip(buffer_keys, embs):
+                        results[k] = e.cpu()
 
-                buffer_imgs.clear()
-                buffer_keys.clear()
+                    buffer_imgs.clear()
+                    buffer_keys.clear()
 
         # resto final
         if buffer_imgs:
@@ -158,7 +184,8 @@ class Trainer:
 async def main():
     session = aiohttp.ClientSession()
     try:
-        username = "racomatavo"
+        username = args.username
+        print("training for " + username)
         user = UserFm(
             username,
             session=session,

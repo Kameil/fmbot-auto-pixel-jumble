@@ -8,6 +8,8 @@ from dataclasses import dataclass
 class Album:
     name: str
     small: str
+    mbid: str
+    mb_img: str
     medium: str
     large: str
     extralarge: str
@@ -56,9 +58,13 @@ class UserFm:
 
             for a in albums:
                 images = {img["size"]: img["#text"] for img in a["image"]}
-
+                mb_id = a.get("mbid", "")
                 album = Album(
                     name=a["name"],
+                    mbid=mb_id,
+                    mb_img=f"https://coverartarchive.org/release/{mb_id}/front"
+                    if mb_id
+                    else "",
                     small=images.get("small", ""),
                     medium=images.get("medium", ""),
                     large=images.get("large", ""),
@@ -70,7 +76,7 @@ class UserFm:
             attr = data["topalbums"]["@attr"]
             total_pages = int(attr["totalPages"])
 
-            print(f"Página {page}/{total_pages} coletada")
+            print(f"page {page}/{total_pages} coleted")
 
             if page >= total_pages:
                 break
@@ -85,16 +91,16 @@ async def main():
     from dotenv import load_dotenv
 
     load_dotenv()
-
-    user = UserFm(
-        "racomatavo",
-        aiohttp.ClientSession(),
-        api_key=os.getenv("LASTFM_API_KEY"),  # type: ignore
-        user_agent="discord fmbot auto pixel jumble solve.",
-    )
-    albums = await user.get_all_albums()
-    for album in albums:
-        print(f"{album.name} - {album.extralarge}\n")
+    async with aiohttp.ClientSession() as session:
+        user = UserFm(
+            "racomatavo",
+            session=session,
+            api_key=os.getenv("LASTFM_API_KEY"),  # type: ignore
+            user_agent="discord fmbot auto pixel jumble solve.",
+        )
+        albums = await user.get_all_albums()
+        for album in albums:
+            print(f"{album.name} - {album.mb_img}\n")
 
 
 if __name__ == "__main__":

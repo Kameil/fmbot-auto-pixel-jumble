@@ -12,7 +12,9 @@ class InferenceEngine:
     def __init__(self, path: torch.types.FileLike):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         checkpoint = torch.load(path)
-        self.embeddings: dict[str, torch.Tensor] = checkpoint["embeddings"]
+        self.embeddings = {
+            k: v.to(self.device) for k, v in checkpoint["embeddings"].items()
+        }
 
         self.model = self._load_model()
         self.transform = self._build_transform()
@@ -58,8 +60,7 @@ class InferenceEngine:
             emb = self.model(tensor)
 
         emb = emb.squeeze(0)
-        emb = F.normalize(emb, dim=0)
-
+        emb = F.normalize(emb, dim=0).to(self.device)
         return emb
 
     def similarity(self, a: torch.Tensor, b: torch.Tensor) -> float:
