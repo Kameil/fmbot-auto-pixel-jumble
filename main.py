@@ -81,10 +81,15 @@ class MyBot(commands.Bot):
 
                 if result and score > 0.9:  # maior do que 90% de similaridade
                     album_name, album_image_link = label_parsing(result)
+                    human_score = score * 100
                     logging.info(
-                        f"{attachment.url} got {score:.2f}% {album_name}::{album_image_link}"
+                        f"{attachment.url} got {human_score:.2f}% {album_name}::{album_image_link}"
                     )
                     await message.channel.send(album_name.lower())
+                else:
+                    logging.warning(
+                        f"Certeza insuficiente: {score if result else 0:.2f}%"
+                    )
 
     async def process_fmbot_message(self, message: discord.Message):
         if not message.attachments:
