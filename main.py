@@ -3,6 +3,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 import logging
 
+
 import aiohttp
 import discord
 from discord.ext import commands
@@ -28,7 +29,7 @@ class MyBot(commands.Bot):
             help_command=None,
         )
         assert os.path.exists(embeddings_path)
-        self.target_user_id = 356268235697553409  # não tem problema ser hardcoded já que nao vai mudar, mesmod dando toc
+        self.target_user_id = 356268235697553409  # .fmbot ID constant
         self.inference_eng = InferenceEngine(embeddings_path)
         self.target_guild_id = target_guild_id
         self.queue = asyncio.Queue()
@@ -88,7 +89,7 @@ class MyBot(commands.Bot):
                     await message.channel.send(album_name.lower())
                 else:
                     logging.warning(
-                        f"Certeza insuficiente: {score if result else 0:.2f}%"
+                        f"enought confidence: {score if result else 0:.2f}%"
                     )
 
     async def process_fmbot_message(self, message: discord.Message):
@@ -103,6 +104,9 @@ class MyBot(commands.Bot):
                 and embed.fields[0].name
                 and "Pixel Jumble" in embed.fields[0].name
             ):
+                cor = embed.color
+                if cor and cor.value == 2021217:
+                    return  # for
                 await self.queue.put(message)
 
     async def on_message(self, message: discord.Message, /) -> None:
