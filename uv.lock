@@ -289,21 +289,21 @@ wheels = [
 
 [[package]]
 name = "discord-protos"
-version = "1.2.162"
+version = "1.2.171"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mypy-protobuf" },
     { name = "protobuf" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/91/48/5a25dfdfc5f24fe82e4b4b12fc0830bf159eb4f7f8d90aa1ef827ab38818/discord_protos-1.2.162.tar.gz", hash = "sha256:14ef4103ea9c6b5c026c29a254675346e94c0162b4be1ca128131cdd8e6292b2", size = 166936, upload-time = "2026-04-11T02:37:03Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/57/2a/9a777f7d450573dc7f6845fb4871b766e83777529ef40d42fedb95514c21/discord_protos-1.2.171.tar.gz", hash = "sha256:3f9aff5e2bba3f055d3d027c3a137c0d4e5d79fb1f0cf5cb7f1390ba82d31d8b", size = 168945, upload-time = "2026-04-17T19:06:53.463Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ee/f9/be8c784b8bf18fb9a4cb84d70c9b1cfbbccfbd0a033a07aa12a872bd18ab/discord_protos-1.2.162-py3-none-any.whl", hash = "sha256:f76d6ae3330b0277fd9a35f3dae4bf8817f05fbcbbf532e45e31e534faee907d", size = 183941, upload-time = "2026-04-11T02:37:01.329Z" },
+    { url = "https://files.pythonhosted.org/packages/8c/12/54d122e268d9659407eac9c453ad1f008603feee07668822ed2ee542aac5/discord_protos-1.2.171-py3-none-any.whl", hash = "sha256:5e83b63b1854ea7da392eee82d1d160a72748a2b277a5f277743babfb1271c10", size = 185919, upload-time = "2026-04-17T19:06:52.025Z" },
 ]
 
 [[package]]
 name = "discord-py-self"
-version = "2.2.0a5295+gd0de3678"
-source = { git = "https://github.com/dolfies/discord.py-self.git#d0de36789f5832632476815b32661752a1a97748" }
+version = "2.2.0a5296+g3bb7c17d"
+source = { git = "https://github.com/kameil/discord.py-self.git?rev=disable-typing#3bb7c17d2b822782ee13e15526cfe4d0ef8442e7" }
 dependencies = [
     { name = "aiohttp" },
     { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
@@ -764,7 +764,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.13.5" },
-    { name = "discord-py-self", git = "https://github.com/dolfies/discord.py-self.git" },
+    { name = "discord-py-self", git = "https://github.com/kameil/discord.py-self.git?rev=disable-typing" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "torch", specifier = ">=2.11.0" },
     { name = "torchvision", specifier = ">=0.26.0" },
