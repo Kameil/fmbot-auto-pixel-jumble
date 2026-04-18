@@ -83,10 +83,10 @@ class Trainer:
                 format = "JPEG"
                 if is_music_brainz:
                     format = "PNG"
-                    img = img.resize(
-                        (224, 224),
-                        resample=Image.BILINEAR,  # type: ignore
-                    )  # salvar no tamanho da mobilenet se não o cache fica gigante
+                img = img.resize(
+                    (8, 8),
+                    resample=Image.BILINEAR,  # type: ignore
+                )  # salvar no tamanho da mobilenet se não o cache fica gigante
                 buffer = BytesIO()
                 img.save(buffer, format=format)
                 data = buffer.getvalue()
@@ -215,7 +215,7 @@ async def main():
         trainer = Trainer(username=f"{username}")
         embds = await trainer.build_album_embeddings(session, albums)
         embds.save(f"{username}.pt")
-    except:
+    except Exception:
         traceback.print_exc()
     finally:
         await session.close()
