@@ -1,5 +1,5 @@
 import aiohttp
-import os
+
 import asyncio
 from dataclasses import dataclass
 
@@ -85,23 +85,3 @@ class UserFm:
             await asyncio.sleep(0.2)
 
         return all_albums
-
-
-async def main():
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    async with aiohttp.ClientSession() as session:
-        user = UserFm(
-            "racomatavo",
-            session=session,
-            api_key=os.getenv("LASTFM_API_KEY"),  # type: ignore
-            user_agent="discord fmbot auto pixel jumble solve.",
-        )
-        albums = await user.get_all_albums()
-        for album in albums:
-            print(f"{album.name} - {album.mb_img}\n")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())

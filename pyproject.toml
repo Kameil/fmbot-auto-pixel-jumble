@@ -17,4 +17,4 @@ dependencies = [
 url = "https://download.pytorch.org/whl/cpu"
 
 [tool.uv.sources]
-discord-py-self = { git = "https://github.com/dolfies/discord.py-self.git" }
+discord-py-self = { git = "https://github.com/kameil/discord.py-self.git", rev = "disable-typing" }

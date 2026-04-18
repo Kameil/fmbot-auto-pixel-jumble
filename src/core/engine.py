@@ -1,10 +1,12 @@
+from io import BytesIO
 from typing import Optional
+
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from io import BytesIO
 from torch.types import Number
 from torchvision import transforms
+
 # import torch.nn as nn
 
 
