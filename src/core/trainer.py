@@ -28,7 +28,7 @@ class Trainer:
                 ),
             ]
         )
-        self.username = username
+        self.username = username.lower()
         self.cache_dir = cache_dir
         os.makedirs(cache_dir, exist_ok=True)
         self.model = self.load_model()

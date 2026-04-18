@@ -1,20 +1,17 @@
 [project]
-name = "pixeljumble"
-version = "0.1.0"
-description = "Add your description here"
+name = "fmbot-autopixeljumble"
+version = "1.1.0"
+description = "solve automatically the fmbot pixel jumble puzzle "
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "aiohttp>=3.13.5",
-    "discord-py-self",
-    "python-dotenv>=1.2.2",
-    "torch>=2.11.0",
-    "torchvision>=0.26.0",
-    "tqdm>=4.66.5",
+  "aiohttp>=3.13.5",
+  "discord-py-self>=2.1.0",
+  "python-dotenv>=1.2.2",
+  "torch>=2.11.0",
+  "torchvision>=0.26.0",
+  "tqdm>=4.66.5",
 ]
 
 [[tool.uv.index]]
 url = "https://download.pytorch.org/whl/cpu"
-
-[tool.uv.sources]
-discord-py-self = { git = "https://github.com/kameil/discord.py-self.git", rev = "disable-typing" }
