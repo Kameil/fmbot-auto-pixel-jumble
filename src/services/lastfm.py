@@ -60,13 +60,22 @@ class UserFm:
                             data = await resp.json()
                             sucess = True
                             break
-                        elif resp.status in [
-                            429,
-                            503,
-                        ]:  # Too Many Requests or Service Unavailable
-                            await asyncio.sleep(wait_time)  # Exponential backoff
                         else:
-                            await asyncio.sleep(0.2)  # Short delay for other errors
+                            if resp.status == 404:
+                                if page == 1:
+                                    raise RuntimeError(
+                                        f'Page {page} not found (404). Stopping retries. Maybe user "{self.user_name}" does not exist?'
+                                    )
+                            print(
+                                f"failed to fetch page {page}, status: {resp.status}. Retrying in {wait_time}s..."
+                            )
+                            if resp.status in [
+                                429,
+                                503,
+                            ]:  # Too Many Requests or Service Unavailable
+                                await asyncio.sleep(wait_time)  # Exponential backoff
+                            else:
+                                await asyncio.sleep(0.2)  # Short delay for other errors
                 except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                     print(f"Error on page {page}: {e}. Retrying in {wait_time}s...")
                     await asyncio.sleep(wait_time)  # Exponential backoff
