@@ -1,3 +1,4 @@
+from typing import Dict
 import aiohttp
 
 import asyncio
@@ -22,7 +23,7 @@ class UserFm:
         session: aiohttp.ClientSession,
         api_key: str,
         user_agent: str,
-        API_ROOT_URL=" http://ws.audioscrobbler.com/2.0/",
+        API_ROOT_URL="http://ws.audioscrobbler.com/2.0/",
     ):
         self.session = session
         self.API_ROOT_URL = API_ROOT_URL
@@ -36,7 +37,7 @@ class UserFm:
     async def get_all_albums(self) -> list[Album]:
         page = 1
         all_albums: list[Album] = []
-
+        max_retries = 5
         while True:
             params = {
                 "method": "user.gettopalbums",
@@ -47,12 +48,32 @@ class UserFm:
                 "limit": 1000,
                 "page": page,
             }
-
-            async with self.session.get(
-                url=self.API_ROOT_URL, params=params, headers=self.headers
-            ) as resp:
-                resp.raise_for_status()
-                data = await resp.json()
+            sucess = False
+            data = None
+            for attemp in range(max_retries):
+                wait_time = 2**attemp  # Exponential backoff
+                try:
+                    async with self.session.get(
+                        url=self.API_ROOT_URL, params=params, headers=self.headers
+                    ) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            sucess = True
+                            break
+                        elif resp.status in [
+                            429,
+                            503,
+                        ]:  # Too Many Requests or Service Unavailable
+                            await asyncio.sleep(wait_time)  # Exponential backoff
+                        else:
+                            await asyncio.sleep(0.2)  # Short delay for other errors
+                except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                    print(f"Error on page {page}: {e}. Retrying in {wait_time}s...")
+                    await asyncio.sleep(wait_time)  # Exponential backoff
+            if not sucess or data is None:
+                raise RuntimeError(
+                    f"Failed to fetch page {page} after {max_retries} attempts."
+                )
 
             albums = data["topalbums"]["album"]
 
