@@ -12,12 +12,16 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s | %(name)s | %(levelname)s | %(message)s"
 )
 
+logging.getLogger("discord").propagate = False
+
+args = load_args()
+
 if __name__ == "__main__":
     if os.getenv("DISCORD_TOKEN", False) is None:
         raise ValueError("DISCORD_TOKEN environment variable is not set")
-
-    args = load_args()
-    path = f"{args.username}.pt"
-    assert os.path.exists(path), f"{path}.pt does not exists"
-    bot = MyBot(path, target_guild_id=args.target_guild_id)
-    bot.run(os.getenv("DISCORD_TOKEN", ""))
+    username = args.username
+    path = os.path.join("users", f"{username}.pt")
+    if os.path.exists(path):
+        logging.info(f"Loading model for user {username} from {path}")
+        bot = MyBot(path, target_guild_id=args.target_guild_id)
+        bot.run(os.getenv("DISCORD_TOKEN", ""))

@@ -18,7 +18,7 @@ async def main():
     try:
         if os.getenv("LASTFM_API_KEY", "") == "":
             raise ValueError("LASTFM_API_KEY is not set in environment variables.")
-        username = args.username
+        username = args.username.lower()
         print("training for " + username)
         user = UserFm(
             username,
@@ -29,7 +29,7 @@ async def main():
         albums = await user.get_all_albums()
         trainer = Trainer(username=f"{username}")
         embds = await trainer.build_album_embeddings(session, albums)
-        embds.save(f"{username}.pt")
+        embds.save(os.path.join("users", f"{username}.pt"))
     except Exception:
         traceback.print_exc()
     finally:
