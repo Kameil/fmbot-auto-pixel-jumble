@@ -1,9 +1,16 @@
-from dotenv import load_dotenv
-from src.utils.args import load_args
-from src.bot.client import MyBot
+import logging
 import os
 
+from dotenv import load_dotenv
+
+from src.bot.client import MyBot
+from src.utils.args import load_args
+
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s | %(name)s | %(levelname)s | %(message)s"
+)
 
 if __name__ == "__main__":
     if os.getenv("DISCORD_TOKEN", False) is None:

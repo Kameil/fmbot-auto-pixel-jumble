@@ -23,6 +23,7 @@ class MyBot(commands.Bot):
         self.queue = asyncio.Queue()
         self.executor = ThreadPoolExecutor(max_workers=2)
         self.session: aiohttp.ClientSession | None = None
+        self.logger = logging.getLogger("Bot")
 
     async def headers_context(self):
         async with aiohttp.ClientSession() as session:
@@ -32,7 +33,7 @@ class MyBot(commands.Bot):
         self.session = aiohttp.ClientSession()
 
     async def on_ready(self):
-        logging.info(f"bot logged in as {self.user.name}")  # type: ignore
+        self.logger.info(f"bot logged in as {self.user.name}")  # type: ignore
         self.loop.create_task(self.process_queue())
 
     async def fetch_img(self, url: str) -> bytes | None:
@@ -42,9 +43,9 @@ class MyBot(commands.Bot):
                     if resp.status == 200:
                         return await resp.read()
             except Exception as e:
-                logging.error(f"error fetching fmbot img {str(e)}")
+                self.logger.error(f"error fetching fmbot img {str(e)}")
                 traceback.print_exc()
-        logging.warning("http session does not exists")
+        self.logger.warning("http session does not exists")
         return None
 
     async def process_queue(self):
@@ -79,16 +80,16 @@ class MyBot(commands.Bot):
                 if result:
                     album_name, album_image_link = label_parsing(result)
                     if score > 0.9:  # maior do que 90% de similaridade
-                        logging.info(
+                        self.logger.info(
                             f"{attachment.url} got {human_score:.2f}% {album_name}::{album_image_link}"
                         )
                         await message.channel.send(album_name.lower())
                     else:
-                        logging.warning(
+                        self.logger.warning(
                             f"enought confidence: {human_score if result else 0:.2f}% \n {attachment.url} got {album_name}::{album_image_link}"
                         )
                 else:
-                    logging.warning(f"{attachment.url} got no result")
+                    self.logger.warning(f"{attachment.url} got no result")
 
     async def process_fmbot_message(self, message: discord.Message):
         if not message.attachments:
